@@ -3,7 +3,7 @@
 
 This software is inspired with sshgit, that scans your entire gitlab/bitbucket server without downloading any files to disk.
 
-Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting, etc.)
+Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting, stripped output, etc.)
 
 
 ### Building
