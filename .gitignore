@@ -1,0 +1,8 @@
+*_token.txt
+build/
+reports/
+*.csv
+.DS_Store
+.idea/
+*config.yaml
+*.txt
