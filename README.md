@@ -1,9 +1,9 @@
 ### Info
 **go-secretscan** scans your gitlab/bitbucket repositories and tries to find stored "secrets" there.
 
-This software is inspired with sshgit, that scans your entire gitlab/bitbucket server without downloadin any files to disk.
+This software is inspired with sshgit, that scans your entire gitlab/bitbucket server without downloading any files to disk.
 
-Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting,  etc.)
+Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting, etc.)
 
 
 ### Building
