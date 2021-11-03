@@ -3,7 +3,7 @@
 
 This software is inspired with sshgit. It looks similar, but go-secretscan scans your entire gitlab/bitbucket server without downloading any files to disk.
 
-Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting, stripped output, etc.)
+Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting, unstripped console output, etc.)
 
 
 ### Building
