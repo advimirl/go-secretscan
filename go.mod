@@ -1,4 +1,4 @@
-module go-secretscan
+module github.com/doublestraus/go-secretscan
 
 go 1.17
 
