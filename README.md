@@ -27,7 +27,7 @@ Must contain next fields:
 access_tokens:
 - token: "" # Auth token for server, you can use file://path/to/token.txt form 
   base_url: "URL_OF_SERVER" # ex: gitlab.site.com
-  worker_type: "bitbucket" #bitbucker/gitlab
+  worker_type: "bitbucket" #bitbucket/gitlab
   
 - token: ""
   base_url: ""
