@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
+	"os"
 )
 
-const Name = "pyro2-ss"
+const Name = "go-secretscan"
 
 type Options struct {
 	Silent         bool
@@ -33,7 +34,11 @@ func parseOptions() (*Options, error) {
 	flag.StringVar(&options.Dodjo.Url, "dd-url", "", "Defect Dodjo url")
 	flag.StringVar(&options.Dodjo.Token, "dd-token", "", "Defect Dodjo API token")
 	flag.StringVar(&options.Dodjo.Product, "dd-product", "", "Defect Dodjo product")
-	flag.StringVar(&options.SignaturesPath, "signature", "config/signatures.yaml", "PAth to signatures.yml file")
+	flag.StringVar(&options.SignaturesPath, "signature", "config/signatures.yaml", "Path to signatures.yml file")
 	flag.Parse()
+	if len(flag.Args()) == 0 {
+		flag.Usage()
+		os.Exit(1)
+	}
 	return options, nil
 }
