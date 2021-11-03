@@ -1,9 +1,9 @@
 ### Info
-**go-secretscan** is utility that can scan your gitlab/bitbucket repositories and try to find stored "secrets" in it.
+**go-secretscan** scans your gitlab/bitbucket repositories and tries to find stored "secrets" there.
 
-We built software inspired of sshgit, that scanning your entirely gitlab/bitbucket server without download any files to your disk.
+This software is inspired with sshgit, that scans your entire gitlab/bitbucket server without downloadin any files to disk.
 
-Despite it opensource nature, some features not included in this version (IM integration, rate-limiting,  etc.)
+Despite it's opensource nature, some features are not included in this version (IM integration, rate-limiting,  etc.)
 
 
 ### Building
@@ -13,9 +13,9 @@ Nothing special, just:
 $ go get https://github.com/doublestraus/go-secretscan
 $ go-secretscan -config /path/to/config.yaml -signature /path/to/signatures.yaml
 ```
-Scanner will create folder named `reports` which will contain scan reports in Gitlab Secrets Detection form (more https://docs.gitlab.com/ee/user/application_security/sast/index.html#reports-json-format)
+Scanner will create a folder named `reports` that stores scan reports in Gitlab Secrets Detection format (more https://docs.gitlab.com/ee/user/application_security/sast/index.html#reports-json-format)
 
-Optionally, you can provide arguments `dd-url, dd-token, dd-product` to setup Defect Dodjo integration. On every repository scanner will create Defect Dodjo engagement and will import JSON report into Dodjo.
+Optionally, you can provide arguments `dd-url, dd-token, dd-product` to setup Defect Dodjo integration. Scanner will create a Defect Dodjo engagement for every repository and will import a JSON report there.
 
 
 ### Configuring
