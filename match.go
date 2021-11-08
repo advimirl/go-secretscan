@@ -89,7 +89,7 @@ func getMatch(file MatchFile, funcs ...MatchProcessorFunc) (MatchRecord, string,
 							}
 						}
 						if !blacklistedMatch {
-							logrus.Printf("High entropy line found in %s. Line: %s. Path: %s", file.Filename, line, file.Path)
+							logrus.Printf("High entropy line found in %s. Matched line: %s. Path: %s", file.Filename, line, file.Path)
 							record = MatchRecord{entropySearch.RuleName, line, 1, file.Path, lineNum, "high"}
 							isMatched = true
 							break

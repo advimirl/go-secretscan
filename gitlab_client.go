@@ -39,6 +39,7 @@ func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess [
 				Confidence:      record.Confidence,
 				commitInfo:      fileToMatch.CommitInfo,
 			}
+			logrus.Printf("Got match in %s. Line: %d. Path: %s", fileToMatch.Filename, record.MatchedLineNumbers, fileToMatch.Path)
 			messages = append(messages, msg)
 		}
 	}
