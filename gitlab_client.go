@@ -4,10 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/xanzy/go-gitlab"
 	"sync"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"github.com/xanzy/go-gitlab"
 )
 
 type GitlabClient struct {
@@ -188,10 +189,14 @@ func (client *GitlabClient) processProject(wg *sync.WaitGroup, projectID int, ch
 			continue
 		}
 
-		content, err := base64.StdEncoding.DecodeString(file.Content)
-		if err != nil {
-			panic(err)
+		var content []byte
+		if file != nil && file.Content != "" {
+			content, err = base64.StdEncoding.DecodeString(file.Content)
+			if err != nil {
+				logrus.Panic(err)
+			}
 		}
+
 		filesToProcess = append(filesToProcess, newMatchFile(node.Path, content, client.withCommit(project.ID, file.CommitID), checker))
 	}
 	client.CheckMatch(project, filesToProcess, checker.storage)

@@ -3,9 +3,10 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"github.com/sirupsen/logrus"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type MatchProcessorFunc func(file MatchFile) bool
