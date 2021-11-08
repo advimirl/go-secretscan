@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 )
 
 const Name = "go-secretscan"
@@ -36,9 +35,5 @@ func parseOptions() (*Options, error) {
 	flag.StringVar(&options.Dodjo.Product, "dd-product", "", "Defect Dodjo product")
 	flag.StringVar(&options.SignaturesPath, "signature", "config/signatures.yaml", "Path to signatures.yml file")
 	flag.Parse()
-	if len(flag.Args()) == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
 	return options, nil
 }
