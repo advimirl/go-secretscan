@@ -10,7 +10,7 @@ Despite it's opensource nature, some features are not included in this version (
 
 Nothing special, just:
 ```shell
-$ go install github.com/doublestraus/go-secretscan@v0.0.4
+$ go install github.com/doublestraus/go-secretscan@latest
 $ go-secretscan -config /path/to/config.yaml -signature /path/to/signatures.yaml
 ```
 Scanner will create a folder named `reports` that stores scan reports in Gitlab Secrets Detection format (more https://docs.gitlab.com/ee/user/application_security/sast/index.html#reports-json-format)
