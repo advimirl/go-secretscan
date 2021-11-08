@@ -194,7 +194,7 @@ func (client *GitlabClient) processProject(wg *sync.WaitGroup, projectID int, ch
 		if file != nil && file.Content != "" {
 			content, err = base64.StdEncoding.DecodeString(file.Content)
 			if err != nil {
-				logrus.Panic(err)
+				logrus.Error(err)
 			}
 		}
 
