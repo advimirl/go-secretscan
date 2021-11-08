@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/xanzy/go-gitlab"
 	"github.com/doublestraus/go-bitbucket"
+	"github.com/xanzy/go-gitlab"
 	"sync"
 )
 
@@ -40,7 +40,10 @@ func createGitlabWorker(accessToken AccessToken) gitlabWorker {
 	}
 	client.UserAgent = Name
 	// To check availability of gitlab instance
-	_, _, err = client.Settings.GetSettings()
+	_, resp, err := client.Version.GetVersion()
+	if resp.StatusCode == 403 {
+		panic("Invalid access token")
+	}
 	if err != nil {
 		panic(err)
 	}
