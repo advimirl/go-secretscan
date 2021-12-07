@@ -14,6 +14,7 @@ type Options struct {
 	ReportsDir     string
 	Dodjo          DodjoOpts
 	SignaturesPath string
+	ForceCreation bool
 }
 
 type DodjoOpts struct {
@@ -34,6 +35,7 @@ func parseOptions() (*Options, error) {
 	flag.StringVar(&options.Dodjo.Token, "dd-token", "", "Defect Dodjo API token")
 	flag.StringVar(&options.Dodjo.Product, "dd-product", "", "Defect Dodjo product")
 	flag.StringVar(&options.SignaturesPath, "signature", "config/signatures.yaml", "Path to signatures.yml file")
+	flag.BoolVar(&options.ForceCreation, "force", false, "Use to rewrite scanning session data")
 	flag.Parse()
 	return options, nil
 }

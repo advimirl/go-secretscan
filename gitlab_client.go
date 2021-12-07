@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -14,6 +13,7 @@ import (
 type GitlabClient struct {
 	*gitlab.Client
 	accessToken *AccessToken
+	session *Session
 }
 
 func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess []MatchFile, storage *Storage) {
@@ -51,14 +51,8 @@ func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess [
 		if ok, err := saveAndSendReport(report, project.Name, storage); !ok || err != nil {
 			logrus.Println(err)
 		}
-
 	}
-	lastActivityBytes := make([]byte, 8)
-	lastActivity := uint64(project.LastActivityAt.UnixMilli())
-	binary.BigEndian.PutUint64(lastActivityBytes, lastActivity)
-	activityKey := make([]byte, 8)
-	binary.BigEndian.PutUint64(activityKey, uint64(project.ID))
-
+	client.session.add(project.NameWithNamespace)
 }
 
 func (client *GitlabClient) getProject(projectID int) *gitlab.Project {
@@ -157,7 +151,10 @@ func (client *GitlabClient) processProject(wg *sync.WaitGroup, projectID int, ch
 	if project == nil || project.EmptyRepo {
 		return
 	}
-
+	if client.session.check(project.NameWithNamespace) {
+		logrus.Debugf("%s has already been scanned.", project.NameWithNamespace)
+		return
+	}
 	opt := &gitlab.ListTreeOptions{Ref: gitlab.String(project.DefaultBranch), Recursive: gitlab.Bool(true)}
 	tree, resp, err := client.recursiveListTree(project.ID, opt)
 	if resp != nil && resp.StatusCode == 404 {

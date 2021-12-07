@@ -2,8 +2,10 @@ package main
 
 import (
 	"github.com/doublestraus/go-bitbucket"
+	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 	"sync"
+	"time"
 )
 
 type Worker interface {
@@ -15,18 +17,24 @@ const (
 	BitbucketWorkerType = "bitbucket"
 )
 
-func createWorker(accessToken AccessToken) Worker {
+func createWorker(accessToken AccessToken, folder string, forceCreation bool) Worker {
+	scanSession := createSession(folder, accessToken)
+	if scanSession.exists() && !forceCreation {
+		logrus.Printf("[%s] - [%s] - Scanning session already exists.\nIf you DONT want to continue the previous scan use --force argument to renew session.\nScanning will resume in 15 seconds", accessToken.WorkerType, accessToken.URL)
+		time.Sleep(15 * time.Second)
+	}
+	scanSession.init(forceCreation)
 	switch accessToken.WorkerType {
 	case GitlabWorkerType:
-		return createGitlabWorker(accessToken)
+		return createGitlabWorker(accessToken, scanSession)
 	case BitbucketWorkerType:
-		return createBitbucketWorker(accessToken)
+		return createBitbucketWorker(accessToken, scanSession)
 	default:
 		panic("Choose implemented worker")
 	}
 }
 
-func createGitlabWorker(accessToken AccessToken) gitlabWorker {
+func createGitlabWorker(accessToken AccessToken, scanSession *Session) gitlabWorker {
 	if accessToken.Token == "" {
 		panic("Cannot create worker without token")
 	}
@@ -51,16 +59,18 @@ func createGitlabWorker(accessToken AccessToken) gitlabWorker {
 	gClient := &GitlabClient{
 		client,
 		&accessToken,
+		scanSession,
 	}
 
-	return gitlabWorker{Client: gClient}
+	return gitlabWorker{Client: gClient, session: scanSession}
 }
 
-func createBitbucketWorker(accessToken AccessToken) bitbucketWorker {
+func createBitbucketWorker(accessToken AccessToken, scanSession *Session) bitbucketWorker {
 	client := bitbucket.New(accessToken.Token, accessToken.URL)
 	bClient := &BitbucketClient{
 		client,
 		&accessToken,
+		scanSession,
 	}
-	return bitbucketWorker{bClient}
+	return bitbucketWorker{client: bClient}
 }

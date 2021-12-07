@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -136,4 +137,10 @@ func findLineOnFile(content []byte, neededString string) int {
 	lineNum = 0
 
 	return lineNum
+}
+
+func sha256_encode(s string) []byte {
+	h := sha256.New()
+	h.Write([]byte(s))
+	return h.Sum(nil)
 }

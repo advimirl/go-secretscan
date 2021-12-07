@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/doublestraus/go-bitbucket"
+	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
@@ -10,6 +10,7 @@ import (
 type BitbucketClient struct {
 	*bitbucket.Client
 	accessToken *AccessToken
+	session *Session
 }
 
 func (b *BitbucketClient) ProcessProjects(checker *Checker, projectsChan <-chan string) (wait <-chan struct{}) {
@@ -55,6 +56,11 @@ func (b *BitbucketClient) processRepo(checker *Checker, repository *bitbucket.Re
 		return
 	}
 	for {
+		if b.session.check(repository.Project.Key + "/" + repository.Slug) {
+			logrus.Debugf("%s has already been scanned.", repository.Project.Key + "/" + repository.Slug)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 		files, err := b.GetProjectsReposFiles(repository.Project.Name, repository.Slug, pagination, filter)
 		if isTimeout(err) {
 			time.Sleep(5 * time.Second)
@@ -130,4 +136,5 @@ func (b *BitbucketClient) processMatch(files []MatchFile, repository *bitbucket.
 			logrus.Println(err)
 		}
 	}
+	b.session.add(repository.Project.Key + "/" + repository.Slug)
 }

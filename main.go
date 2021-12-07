@@ -22,9 +22,12 @@ func main() {
 	var wgWorkers sync.WaitGroup
 
 	checker := Checker{storage}
-
+	workers := make([]Worker, 0)
 	for _, access := range storage.getAccessTokens() {
-		worker := createWorker(access)
+		worker := createWorker(access, options.ReportsDir, options.ForceCreation)
+		workers = append(workers, worker)
+	}
+	for _, worker := range workers {
 		wgWorkers.Add(1)
 		go worker.doWork(&wgWorkers, &checker)
 	}

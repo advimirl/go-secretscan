@@ -8,6 +8,7 @@ import (
 
 type gitlabWorker struct {
 	Client *GitlabClient
+	session *Session
 }
 
 func (g gitlabWorker) doWork(wg *sync.WaitGroup, checker *Checker) {
