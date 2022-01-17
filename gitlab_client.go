@@ -17,7 +17,7 @@ type GitlabClient struct {
 	monthToCheckFrom int
 }
 
-func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess []MatchFile, storage *Storage) {
+func (client *GitlabClient) CheckMatch(project *gitlab.Project, branchName string, filesToProcess []MatchFile, storage *Storage) {
 	var (
 		ok       = false
 		records  []MatchRecord
@@ -32,7 +32,7 @@ func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess [
 				MatchType:       record.MatchType,
 				ProjectID:       project.ID,
 				ProjectName:     project.Namespace.Name + "/" + project.Name,
-				MatchURL:        project.WebURL + "/-/blob/" + project.DefaultBranch + "/" + fileToMatch.Path,
+				MatchURL:        project.WebURL + "/-/blob/" + branchName + "/" + fileToMatch.Path,
 				Path:            fileToMatch.Path,
 				Filename:        record.MatchedFilename,
 				RawMatchContent: record.MatchedContent,
@@ -40,7 +40,7 @@ func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess [
 				Confidence:      record.Confidence,
 				commitInfo:      fileToMatch.CommitInfo,
 			}
-			logrus.Printf("Got match in %s. Line: %d. Path: %s", fileToMatch.Filename, record.MatchedLineNumbers, fileToMatch.Path)
+			logrus.Printf("Got match in %s. Line: %d. Path: %s. Reason: %s", fileToMatch.Filename, record.MatchedLineNumbers, fileToMatch.Path, reason)
 			messages = append(messages, msg)
 		}
 	}
@@ -146,6 +146,56 @@ func (client *GitlabClient) recursiveListTree(pid int, options *gitlab.ListTreeO
 
 }
 
+func (client *GitlabClient) processProjectBranch(wg *sync.WaitGroup, project *gitlab.Project, checker *Checker, branchNameChan <-chan string) {
+	defer wg.Done()
+	for branchName := range branchNameChan {
+		logrus.Debugf("[%s] Processing branch %s", project.NameWithNamespace, branchName)
+		opt := &gitlab.ListTreeOptions{Ref: gitlab.String(branchName), Recursive: gitlab.Bool(true)}
+		tree, resp, err := client.recursiveListTree(project.ID, opt)
+		if resp != nil && resp.StatusCode == 404 {
+			logrus.Print(err)
+		}
+		if err != nil {
+			logrus.Print(err)
+			return
+		}
+
+		fopt := &gitlab.GetFileOptions{Ref: gitlab.String(branchName)}
+		filesToProcess := make([]MatchFile, 0)
+		for _, node := range tree {
+			if checker.checkFileExtBlacklisted(node.Path) {
+				continue
+			}
+			if checker.checkFilenameBlacklisted(node.Name) {
+				continue
+			}
+			var file *gitlab.File
+			for {
+				file, resp, err = client.RepositoryFiles.GetFile(project.ID, node.Path, fopt)
+				if !isTimeout(err) {
+					break
+				}
+				time.Sleep(5 * time.Second)
+			}
+			if resp != nil && resp.StatusCode == 404 {
+				logrus.Debugf("[%s]. File not found. %s at %s", project.Name, node.Path, project.DefaultBranch)
+				continue
+			}
+
+			var content []byte
+			if file != nil && file.Content != "" {
+				content, err = base64.StdEncoding.DecodeString(file.Content)
+				if err != nil {
+					logrus.Error(err)
+				}
+			}
+
+			filesToProcess = append(filesToProcess, newMatchFile(node.Path, content, client.withCommit(project.ID, file.CommitID), checker))
+		}
+		client.CheckMatch(project, branchName, filesToProcess, checker.storage)
+	}
+}
+
 func (client *GitlabClient) processProject(wg *sync.WaitGroup, projectID int, checker *Checker) {
 	defer wg.Done()
 	project := client.getProject(projectID)
@@ -156,49 +206,34 @@ func (client *GitlabClient) processProject(wg *sync.WaitGroup, projectID int, ch
 		logrus.Debugf("%s has already been scanned.", project.NameWithNamespace)
 		return
 	}
-	opt := &gitlab.ListTreeOptions{Ref: gitlab.String(project.DefaultBranch), Recursive: gitlab.Bool(true)}
-	tree, resp, err := client.recursiveListTree(project.ID, opt)
-	if resp != nil && resp.StatusCode == 404 {
-		logrus.Print(err)
-	}
-	if err != nil {
-		logrus.Print(err)
-		return
-	}
-
-	fopt := &gitlab.GetFileOptions{Ref: gitlab.String(project.DefaultBranch)}
-	filesToProcess := make([]MatchFile, 0)
-	for _, node := range tree {
-		if checker.checkFileExtBlacklisted(node.Path) {
-			continue
-		}
-		if checker.checkFilenameBlacklisted(node.Name) {
-			continue
-		}
-		var file *gitlab.File
-		for {
-			file, resp, err = client.RepositoryFiles.GetFile(project.ID, node.Path, fopt)
-			if !isTimeout(err) {
-				break
-			}
+	bopts := &gitlab.ListBranchesOptions{}
+	branches := make([]*gitlab.Branch, 0)
+	for {
+		br, resp, err := client.Branches.ListBranches(projectID, bopts)
+		if isTimeout(err) {
 			time.Sleep(5 * time.Second)
-		}
-		if resp != nil && resp.StatusCode == 404 {
-			logrus.Infof("[%s]. File not found. %s at %s", project.Name, node.Path, project.DefaultBranch)
 			continue
 		}
-
-		var content []byte
-		if file != nil && file.Content != "" {
-			content, err = base64.StdEncoding.DecodeString(file.Content)
-			if err != nil {
-				logrus.Error(err)
-			}
+		if err != nil {
+			logrus.Errorln(err)
 		}
-
-		filesToProcess = append(filesToProcess, newMatchFile(node.Path, content, client.withCommit(project.ID, file.CommitID), checker))
+		if resp.CurrentPage >= resp.TotalPages {
+			break
+		}
+		bopts.Page = resp.NextPage
+		branches = append(branches, br...)
 	}
-	client.CheckMatch(project, filesToProcess, checker.storage)
+	routineCount := 1
+	branchNameChan := make(chan string, 0)
+	var pbWg sync.WaitGroup
+	for i := 0; i < routineCount; i++ {
+		pbWg.Add(1)
+		go client.processProjectBranch(&pbWg, project, checker, branchNameChan)
+	}
+	for _, branch := range branches {
+		branchNameChan <- branch.Name
+	}
+	pbWg.Wait()
 }
 
 func (client *GitlabClient) withCommit(pid int, commitID string) *CommitInfo {
