@@ -17,7 +17,7 @@ const (
 	BitbucketWorkerType = "bitbucket"
 )
 
-func createWorker(accessToken AccessToken, folder string, forceCreation bool) Worker {
+func createWorker(accessToken AccessToken, folder string, forceCreation bool, toCheckFrom int) Worker {
 	scanSession := createSession(folder, accessToken)
 	if scanSession.exists() && !forceCreation {
 		logrus.Printf("[%s] - [%s] - Scanning session already exists.\nIf you DONT want to continue the previous scan use --force argument to renew session.\nScanning will resume in 15 seconds", accessToken.WorkerType, accessToken.URL)
@@ -26,15 +26,15 @@ func createWorker(accessToken AccessToken, folder string, forceCreation bool) Wo
 	scanSession.init(forceCreation)
 	switch accessToken.WorkerType {
 	case GitlabWorkerType:
-		return createGitlabWorker(accessToken, scanSession)
+		return createGitlabWorker(accessToken, toCheckFrom, scanSession)
 	case BitbucketWorkerType:
-		return createBitbucketWorker(accessToken, scanSession)
+		return createBitbucketWorker(accessToken, toCheckFrom, scanSession)
 	default:
 		panic("Choose implemented worker")
 	}
 }
 
-func createGitlabWorker(accessToken AccessToken, scanSession *Session) gitlabWorker {
+func createGitlabWorker(accessToken AccessToken, monthToCheckFrom int, scanSession *Session) gitlabWorker {
 	if accessToken.Token == "" {
 		panic("Cannot create worker without token")
 	}
@@ -60,17 +60,19 @@ func createGitlabWorker(accessToken AccessToken, scanSession *Session) gitlabWor
 		client,
 		&accessToken,
 		scanSession,
+		monthToCheckFrom,
 	}
 
 	return gitlabWorker{Client: gClient, session: scanSession}
 }
 
-func createBitbucketWorker(accessToken AccessToken, scanSession *Session) bitbucketWorker {
+func createBitbucketWorker(accessToken AccessToken, monthToCheckFrom int, scanSession *Session) bitbucketWorker {
 	client := bitbucket.New(accessToken.Token, accessToken.URL)
 	bClient := &BitbucketClient{
 		client,
 		&accessToken,
 		scanSession,
+		monthToCheckFrom,
 	}
 	return bitbucketWorker{client: bClient}
 }

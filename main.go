@@ -24,7 +24,7 @@ func main() {
 	checker := Checker{storage}
 	workers := make([]Worker, 0)
 	for _, access := range storage.getAccessTokens() {
-		worker := createWorker(access, options.ReportsDir, options.ForceCreation)
+		worker := createWorker(access, options.ReportsDir, options.ForceCreation, options.FromMonth)
 		workers = append(workers, worker)
 	}
 	for _, worker := range workers {
