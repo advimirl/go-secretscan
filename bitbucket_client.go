@@ -9,8 +9,9 @@ import (
 
 type BitbucketClient struct {
 	*bitbucket.Client
-	accessToken *AccessToken
-	session *Session
+	accessToken      *AccessToken
+	session          *Session
+	monthToCheckFrom int
 }
 
 func (b *BitbucketClient) ProcessProjects(checker *Checker, projectsChan <-chan string) (wait <-chan struct{}) {
@@ -52,12 +53,12 @@ func (b *BitbucketClient) processRepo(checker *Checker, repository *bitbucket.Re
 	pagination := bitbucket.DefaultPagination()
 	filter := &bitbucket.ProjectReposFileFilter{}
 	filesToProcess := make([]MatchFile, 0)
-	if !b.repoActive(repository, 1) {
+	if !b.repoActive(repository, b.monthToCheckFrom) {
 		return
 	}
 	for {
 		if b.session.check(repository.Project.Key + "/" + repository.Slug) {
-			logrus.Debugf("%s has already been scanned.", repository.Project.Key + "/" + repository.Slug)
+			logrus.Debugf("%s has already been scanned.", repository.Project.Key+"/"+repository.Slug)
 			time.Sleep(5 * time.Second)
 			continue
 		}

@@ -14,7 +14,8 @@ type Options struct {
 	ReportsDir     string
 	Dodjo          DodjoOpts
 	SignaturesPath string
-	ForceCreation bool
+	ForceCreation  bool
+	FromMonth      int
 }
 
 type DodjoOpts struct {
@@ -36,6 +37,7 @@ func parseOptions() (*Options, error) {
 	flag.StringVar(&options.Dodjo.Product, "dd-product", "", "Defect Dodjo product")
 	flag.StringVar(&options.SignaturesPath, "signature", "config/signatures.yaml", "Path to signatures.yml file")
 	flag.BoolVar(&options.ForceCreation, "force", false, "Use to rewrite scanning session data")
+	flag.IntVar(&options.FromMonth, "month-delta", 1, "Use to setup delta in month from current date")
 	flag.Parse()
 	return options, nil
 }

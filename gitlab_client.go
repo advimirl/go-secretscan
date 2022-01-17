@@ -12,8 +12,9 @@ import (
 
 type GitlabClient struct {
 	*gitlab.Client
-	accessToken *AccessToken
-	session *Session
+	accessToken      *AccessToken
+	session          *Session
+	monthToCheckFrom int
 }
 
 func (client *GitlabClient) CheckMatch(project *gitlab.Project, filesToProcess []MatchFile, storage *Storage) {
@@ -69,7 +70,7 @@ func (client *GitlabClient) getProject(projectID int) *gitlab.Project {
 }
 
 func (client *GitlabClient) isProjectActive(projectID int) bool {
-	timeDelta := gitlab.ISOTime(time.Now().AddDate(0, -1, 0))
+	timeDelta := gitlab.ISOTime(time.Now().AddDate(0, -client.monthToCheckFrom, 0))
 
 	pushed := gitlab.PushedEventType
 	listContributionEventsOpts := &gitlab.ListContributionEventsOptions{
