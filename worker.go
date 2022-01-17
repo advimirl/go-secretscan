@@ -4,6 +4,7 @@ import (
 	"github.com/doublestraus/go-bitbucket"
 	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
+	"os"
 	"sync"
 	"time"
 )
@@ -50,10 +51,12 @@ func createGitlabWorker(accessToken AccessToken, monthToCheckFrom int, scanSessi
 	// To check availability of gitlab instance
 	_, resp, err := client.Version.GetVersion()
 	if resp.StatusCode == 403 {
-		panic("Invalid access token")
+		logrus.Error("Invalid access token")
+		os.Exit(1)
 	}
 	if err != nil {
-		panic(err)
+		logrus.Error(err)
+		os.Exit(1)
 	}
 
 	gClient := &GitlabClient{
