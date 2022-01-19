@@ -3,15 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/sirupsen/logrus"
-	"github.com/xanzy/go-gitlab"
-	"gitlab.com/gitlab-org/security-products/analyzers/report/v2"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,6 +19,11 @@ import (
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/sirupsen/logrus"
+	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/security-products/analyzers/report/v2"
 )
 
 func readAndLocateFile(pathToFile, filename string) ([]byte, string, error) {
@@ -143,4 +145,26 @@ func sha256_encode(s string) []byte {
 	h := sha256.New()
 	h.Write([]byte(s))
 	return h.Sum(nil)
+}
+
+type ctxKey string
+
+func (c ctxKey) String() string {
+	return "go-secretscan context key " + string(c)
+}
+
+func getContextStorage(ctx context.Context) *Storage {
+	return ctx.Value(ctxKeyStorage).(*Storage)
+}
+
+func getContextOptions(ctx context.Context) *Options {
+	return ctx.Value(ctxKeyOptions).(*Options)
+}
+
+func getContextMessageStore(ctx context.Context) *MessageStore {
+	return ctx.Value(ctxKeyReportMessages).(*MessageStore)
+}
+
+func getContextScanSession(ctx context.Context) *Session {
+	return ctx.Value(ctxKeyScanSession).(*Session)
 }

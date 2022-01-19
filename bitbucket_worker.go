@@ -1,21 +1,23 @@
 package main
 
 import (
-	"github.com/doublestraus/go-bitbucket"
+	"context"
 	"sync"
 	"time"
+
+	"github.com/doublestraus/go-bitbucket"
 )
 
 type bitbucketWorker struct {
 	client *BitbucketClient
 }
 
-func (b bitbucketWorker) doWork(wg *sync.WaitGroup, checker *Checker) {
+func (b bitbucketWorker) doWork(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client := b.client
 
 	projectsChan := make(chan string)
-	wait := client.ProcessProjects(checker, projectsChan)
+	wait := client.ProcessProjects(ctx, projectsChan)
 	pagination := bitbucket.DefaultPagination()
 	filter := &bitbucket.ProjectsFilter{}
 
@@ -26,7 +28,7 @@ func (b bitbucketWorker) doWork(wg *sync.WaitGroup, checker *Checker) {
 			continue
 		}
 		for _, project := range projects {
-			if checker.checkProjectNameBlacklisted(project.Name) {
+			if checkProjectNameBlacklisted(ctx, project.Name) {
 				continue
 			}
 			projectsChan <- project.Key

@@ -1,15 +1,17 @@
 package main
 
 import (
+	"context"
+	"sync"
+	"time"
+
 	"github.com/doublestraus/go-bitbucket"
 	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
-	"sync"
-	"time"
 )
 
 type Worker interface {
-	doWork(wg *sync.WaitGroup, checker *Checker)
+	doWork(ctx context.Context, wg *sync.WaitGroup)
 }
 
 const (
@@ -17,24 +19,26 @@ const (
 	BitbucketWorkerType = "bitbucket"
 )
 
-func createWorker(accessToken AccessToken, folder string, forceCreation bool, toCheckFrom int) Worker {
-	scanSession := createSession(folder, accessToken)
-	if scanSession.exists() && !forceCreation {
+func createWorker(ctx context.Context, accessToken AccessToken) (Worker, context.Context) {
+	options := getContextOptions(ctx)
+	scanSession := createSession(options.ReportsDir, accessToken)
+	if scanSession.exists() && !options.ForceCreation {
 		logrus.Printf("[%s] - [%s] - Scanning session already exists.\nIf you DONT want to continue the previous scan use --force argument to renew session.\nScanning will resume in 15 seconds", accessToken.WorkerType, accessToken.URL)
 		time.Sleep(15 * time.Second)
 	}
-	scanSession.init(forceCreation)
+	scanSession.init(options.ForceCreation)
+	wctx := context.WithValue(ctx, ctxKeyScanSession, scanSession)
 	switch accessToken.WorkerType {
 	case GitlabWorkerType:
-		return createGitlabWorker(accessToken, toCheckFrom, scanSession)
+		return createGitlabWorker(accessToken), wctx
 	case BitbucketWorkerType:
-		return createBitbucketWorker(accessToken, toCheckFrom, scanSession)
+		return createBitbucketWorker(accessToken), wctx
 	default:
 		panic("Choose implemented worker")
 	}
 }
 
-func createGitlabWorker(accessToken AccessToken, monthToCheckFrom int, scanSession *Session) gitlabWorker {
+func createGitlabWorker(accessToken AccessToken) gitlabWorker {
 	if accessToken.Token == "" {
 		panic("Cannot create worker without token")
 	}
@@ -59,20 +63,16 @@ func createGitlabWorker(accessToken AccessToken, monthToCheckFrom int, scanSessi
 	gClient := &GitlabClient{
 		client,
 		&accessToken,
-		scanSession,
-		monthToCheckFrom,
 	}
 
-	return gitlabWorker{Client: gClient, session: scanSession}
+	return gitlabWorker{Client: gClient}
 }
 
-func createBitbucketWorker(accessToken AccessToken, monthToCheckFrom int, scanSession *Session) bitbucketWorker {
+func createBitbucketWorker(accessToken AccessToken) bitbucketWorker {
 	client := bitbucket.New(accessToken.Token, accessToken.URL)
 	bClient := &BitbucketClient{
 		client,
 		&accessToken,
-		scanSession,
-		monthToCheckFrom,
 	}
 	return bitbucketWorker{client: bClient}
 }

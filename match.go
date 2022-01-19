@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -17,7 +18,6 @@ type MatchFile struct {
 	Extension  string
 	Contents   []byte
 	CommitInfo *CommitInfo
-	Checker    *Checker
 }
 
 type MatchRecord struct {
@@ -29,7 +29,7 @@ type MatchRecord struct {
 	Confidence         string
 }
 
-func newMatchFile(path string, content []byte, info *CommitInfo, checker *Checker) MatchFile {
+func newMatchFile(path string, content []byte, info *CommitInfo) MatchFile {
 	path = filepath.ToSlash(path)
 	_, filename := filepath.Split(path)
 	extension := filepath.Ext(path)
@@ -40,16 +40,15 @@ func newMatchFile(path string, content []byte, info *CommitInfo, checker *Checke
 		Extension:  extension,
 		Contents:   content,
 		CommitInfo: info,
-		Checker:    checker,
 	}
 }
 
-func getMatch(file MatchFile, funcs ...MatchProcessorFunc) (MatchRecord, string, bool) {
+func getMatch(ctx context.Context, file MatchFile, funcs ...MatchProcessorFunc) (MatchRecord, string, bool) {
 	var (
 		isMatched            = false
 		record               MatchRecord
 		matchedSignatureName string
-		storage              = file.Checker.storage
+		storage              = getContextStorage(ctx)
 	)
 	fnMatched := true
 	for _, fn := range funcs {
@@ -73,7 +72,7 @@ func getMatch(file MatchFile, funcs ...MatchProcessorFunc) (MatchRecord, string,
 			return record, pattern.Name(), true
 		}
 	}
-	if file.Checker.checkEntropyFile(file.Filename, file.Extension) {
+	if checkEntropyFile(ctx, file.Filename, file.Extension) {
 		scanner := bufio.NewScanner(bytes.NewReader(file.Contents))
 		lineNum := 1
 		for scanner.Scan() {
