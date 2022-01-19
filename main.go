@@ -1,8 +1,17 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
+	"context"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	ctxKeyOptions        = ctxKey("options")
+	ctxKeyStorage        = ctxKey("storage")
+	ctxKeyReportMessages = ctxKey("report-messages")
+	ctxKeyScanSession    = ctxKey("scan-session")
 )
 
 func main() {
@@ -18,18 +27,18 @@ func main() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 
-	storage := create(options)
+	storage := createStorage(options)
 	var wgWorkers sync.WaitGroup
 
-	checker := Checker{storage}
-	workers := make([]Worker, 0)
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, ctxKeyOptions, options)
+	ctx = context.WithValue(ctx, ctxKeyStorage, storage)
 	for _, access := range storage.getAccessTokens() {
-		worker := createWorker(access, options.ReportsDir, options.ForceCreation, options.FromMonth)
-		workers = append(workers, worker)
-	}
-	for _, worker := range workers {
+		worker, wctx := createWorker(ctx, access)
+		wctx = context.WithValue(wctx, ctxKeyReportMessages, newMessageStore())
 		wgWorkers.Add(1)
-		go worker.doWork(&wgWorkers, &checker)
+		go worker.doWork(wctx, &wgWorkers)
 	}
 	wgWorkers.Wait()
+	logrus.Println("Done.")
 }

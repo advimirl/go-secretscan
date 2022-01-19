@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"gitlab.com/gitlab-org/security-products/analyzers/report/v2"
 	"strings"
 	"time"
+
+	"gitlab.com/gitlab-org/security-products/analyzers/report/v2"
 )
 
 const (
@@ -29,7 +30,7 @@ var secretsScannerDetailed = report.ScannerDetails{
 	Version: scannerVersion,
 }
 
-func createReport(messages []Message, storage *Storage) (*report.Report, error) {
+func createReport(messages []*Message, storage *Storage) (*report.Report, error) {
 	var vulns []report.Vulnerability
 
 	for _, msg := range messages {
@@ -71,7 +72,7 @@ func createReport(messages []Message, storage *Storage) (*report.Report, error) 
 	endTime := report.ScanTime(time.Now())
 	rp := report.NewReport()
 	rp.Analyzer = analyzerId
-	rp.Config.Path = storage.getConfigPath()
+	//rp.Config.Path = storage.getConfigPath()
 	rp.Vulnerabilities = vulns
 	rp.Scan.EndTime = &endTime
 	rp.Scan.Scanner = secretsScannerDetailed

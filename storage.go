@@ -14,7 +14,7 @@ type Storage struct {
 	reportsDir       string
 }
 
-func create(options *Options) *Storage {
+func createStorage(options *Options) *Storage {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	config, err := ParseConfig(options)
