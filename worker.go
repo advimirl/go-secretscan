@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"sync"
 	"time"
 
@@ -54,10 +55,12 @@ func createGitlabWorker(accessToken AccessToken) gitlabWorker {
 	// To check availability of gitlab instance
 	_, resp, err := client.Version.GetVersion()
 	if resp.StatusCode == 403 {
-		panic("Invalid access token")
+		logrus.Error("Invalid access token")
+		os.Exit(1)
 	}
 	if err != nil {
-		panic(err)
+		logrus.Error(err)
+		os.Exit(1)
 	}
 
 	gClient := &GitlabClient{
