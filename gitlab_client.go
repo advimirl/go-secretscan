@@ -77,24 +77,33 @@ func (client *GitlabClient) isProjectActive(ctx context.Context, projectID int) 
 		time.Sleep(5 * time.Second)
 	}
 
-	return !(projectEvents == nil || len(projectEvents) == 0)
+	return !(len(projectEvents) == 0)
 }
 
-func (client *GitlabClient) processProjects(ctx context.Context, projectsChan chan int) (wait <-chan struct{}) {
+func (client *GitlabClient) createTasksAndWait(ctx context.Context, projectsChan chan int) (wait <-chan struct{}) {
 	ch := make(chan struct{})
 	go func() {
-		var projectGroup sync.WaitGroup
-
-		for projectID := range projectsChan {
-			if client.isProjectActive(ctx, projectID) {
-				projectGroup.Add(1)
-				go client.processProject(ctx, &projectGroup, projectID)
-			}
+		var tasksGroup sync.WaitGroup
+		projectsCount := getContextOptions(ctx).ProjectsCount
+		for i := 0; i < projectsCount; i++ {
+			tasksGroup.Add(1)
+			go client.task(ctx, &tasksGroup, projectsChan)
 		}
-		projectGroup.Wait()
+
+		tasksGroup.Wait()
 		close(ch)
 	}()
 	return ch
+}
+
+func (client *GitlabClient) task(ctx context.Context, wg *sync.WaitGroup, projectsChan chan int) {
+	defer wg.Done()
+	for projectID := range projectsChan {
+		if client.isProjectActive(ctx, projectID) {
+			logrus.Debugf("task for processing project with pid = %d\n", projectID)
+			client.processProject(ctx, projectID)
+		}
+	}
 }
 
 func (client *GitlabClient) recursiveListTree(pid int, options *gitlab.ListTreeOptions) ([]*gitlab.TreeNode, *gitlab.Response, error) {
@@ -185,14 +194,13 @@ func (client *GitlabClient) processProjectBranch(ctx context.Context, wg *sync.W
 				}
 			}
 
-			filesToProcess = append(filesToProcess, newMatchFile(node.Path, content, client.withCommit(project.ID, file.CommitID)))
+			filesToProcess = append(filesToProcess, newMatchFile(node.Path, content, client.withCommit(project.ID, file)))
 		}
 		client.CheckMatch(ctx, project, branchName, filesToProcess)
 	}
 }
 
-func (client *GitlabClient) processProject(ctx context.Context, wg *sync.WaitGroup, projectID int) {
-	defer wg.Done()
+func (client *GitlabClient) processProject(ctx context.Context, projectID int) {
 	project := client.getProject(projectID)
 	if project == nil || project.EmptyRepo {
 		return
@@ -227,8 +235,11 @@ func (client *GitlabClient) processProject(ctx context.Context, wg *sync.WaitGro
 	pbWg.Wait()
 }
 
-func (client *GitlabClient) withCommit(pid int, commitID string) *CommitInfo {
-	commit, _, err := client.Commits.GetCommit(pid, commitID)
+func (client *GitlabClient) withCommit(pid int, file *gitlab.File) *CommitInfo {
+	if file == nil {
+		return &CommitInfo{}
+	}
+	commit, _, err := client.Commits.GetCommit(pid, file.CommitID)
 	if err != nil {
 		logrus.Println(err)
 		return &CommitInfo{}

@@ -17,6 +17,7 @@ type Options struct {
 	ForceCreation  bool
 	FromMonth      int
 	Branches       string
+	ProjectsCount  int
 }
 
 type DodjoOpts struct {
@@ -40,6 +41,7 @@ func parseOptions() (*Options, error) {
 	flag.BoolVar(&options.ForceCreation, "force", false, "Use to rewrite scanning session data")
 	flag.IntVar(&options.FromMonth, "month-delta", 1, "Use to setup delta in month from current date")
 	flag.StringVar(&options.Branches, "branches", "default", "Set to `all` to scan all branches in repos")
+	flag.IntVar(&options.ProjectsCount, "projects", 5, "Number of simultaneously processed projects")
 	flag.Parse()
 	return options, nil
 }

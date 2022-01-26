@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
 	"regexp"
-	"regexp/syntax"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Pattern interface {
@@ -30,10 +30,10 @@ func createPattern(signature SignatureServiceRecord, blacklistedStringsRef *[]st
 			logrus.Panicf("%v", signature)
 		}
 	} else {
-		if _, err := syntax.Parse(signature.Match, syntax.FoldCase); err == nil {
+		if regexp, err := regexp.Compile(signature.Regex); err == nil {
 			pattern := MatchPattern{
 				name:               signature.Name,
-				match:              regexp.MustCompile(signature.Regex),
+				match:              regexp,
 				confidence:         signature.Confidence,
 				blacklistedStrings: blacklistedStringsRef,
 			}
@@ -49,6 +49,8 @@ func createPattern(signature SignatureServiceRecord, blacklistedStringsRef *[]st
 			default:
 				panic(signature)
 			}
+		} else {
+			panic(err)
 		}
 
 	}

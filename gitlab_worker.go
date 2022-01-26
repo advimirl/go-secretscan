@@ -18,7 +18,7 @@ func (g gitlabWorker) doWork(ctx context.Context, wg *sync.WaitGroup) {
 	client := g.Client
 
 	projectsChan := make(chan int)
-	wait := client.processProjects(ctx, projectsChan)
+	wait := client.createTasksAndWait(ctx, projectsChan)
 	listProjectOptions := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{PerPage: 20, Page: 1},
 	}
